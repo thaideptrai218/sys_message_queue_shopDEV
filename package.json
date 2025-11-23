@@ -16,7 +16,8 @@
     "dotenv": "^17.2.3",
     "jest": "^30.2.0",
     "lodash": "^4.17.21",
-    "mongoose": "^8.20.0"
+    "mongoose": "^8.20.0",
+    "mysql2": "^3.15.3"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.8",
