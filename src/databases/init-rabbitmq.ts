@@ -1,4 +1,7 @@
 import amqp, { Connection, Channel } from "amqplib";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 interface RabbitMQConfig {
     hostname?: string;
@@ -15,11 +18,14 @@ interface RabbitMQConnection {
     close: () => Promise<void>;
 }
 
+// Global connection object
+export let rabbitMQConnection: RabbitMQConnection | null = null;
+
 const DEFAULT_CONFIG: RabbitMQConfig = {
-    hostname: "localhost",
-    port: 5672,
-    username: "guest",
-    password: "guest",
+    hostname: process.env.RABBITMQ_HOST || "localhost",
+    port: parseInt(process.env.RABBITMQ_PORT || "5672"),
+    username: process.env.RABBITMQ_USER || "guest",
+    password: process.env.RABBITMQ_PASSWORD || "guest",
     vhost: "/",
     heartbeat: 60,
 };
@@ -48,22 +54,7 @@ const connectToRabbitMq = async (
 
         const channel = await connection.createChannel();
 
-        // Set up error handlers
-        connection.on("error", (err) => {
-            console.error("❌ RabbitMQ connection error:", err);
-        });
-
-        connection.on("close", () => {
-            console.log("🔌 RabbitMQ connection closed");
-        });
-
-        channel.on("error", (err) => {
-            console.error("❌ RabbitMQ channel error:", err);
-        });
-
-        console.log("✅ Connected to RabbitMQ successfully!");
-
-        return {
+        const connectionObj = {
             connection,
             channel,
             close: async () => {
@@ -71,6 +62,7 @@ const connectToRabbitMq = async (
                     if (channel) await channel.close();
                     if (connection) await connection.close();
                     console.log("🔌 RabbitMQ connection closed gracefully");
+                    rabbitMQConnection = null;
                 } catch (error) {
                     console.error(
                         "❌ Error closing RabbitMQ connection:",
@@ -79,6 +71,33 @@ const connectToRabbitMq = async (
                 }
             },
         };
+
+        // Set up error handlers
+        connection.on("error", (err) => {
+            console.error("❌ RabbitMQ connection error:", err);
+        });
+
+        connection.on("close", () => {
+            console.log("🔌 RabbitMQ connection closed");
+            rabbitMQConnection = null;
+        });
+
+        channel.on("error", (err) => {
+            console.error("❌ RabbitMQ channel error:", err);
+        });
+
+        // Store connection globally
+        rabbitMQConnection = connectionObj;
+
+        console.log("✅ Connected to RabbitMQ successfully!");
+        console.log(`🐰 RabbitMQ Connection Details:
+- Host: ${finalConfig.hostname}
+- Port: ${finalConfig.port}
+- Username: ${finalConfig.username}
+- VHost: ${finalConfig.vhost}
+- Heartbeat: ${finalConfig.heartbeat}s`);
+
+        return connectionObj;
     } catch (error) {
         console.error(
             "❌ Failed to connect to RabbitMQ:",
@@ -87,6 +106,7 @@ const connectToRabbitMq = async (
         return null;
     }
 };
+
 
 const connectToRabbitMqForTest = async () => {
     try {
@@ -138,6 +158,8 @@ const connectToRabbitMqForTest = async () => {
     }
 };
 
+// Auto-connect to RabbitMQ when module is imported
+connectToRabbitMq();
 
 // Export functions for use in other files
 export { connectToRabbitMq, connectToRabbitMqForTest };
