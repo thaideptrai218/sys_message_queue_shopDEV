@@ -1,4 +1,4 @@
-import amqp, { Connection, Channel } from "amqplib";
+import amqp, { Connection, Channel, ChannelModel } from "amqplib";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,8 +13,8 @@ interface RabbitMQConfig {
 }
 
 interface RabbitMQConnection {
-    connection: any;
-    channel: any;
+    connection: ChannelModel;
+    channel: Channel;
     close: () => Promise<void>;
 }
 
@@ -158,7 +158,11 @@ const connectToRabbitMqForTest = async () => {
     }
 };
 
+// Export connection promise for other modules to wait for
+export const rabbitMQPromise = connectToRabbitMq();
+
 // Auto-connect to RabbitMQ when module is imported
+// Note: This is redundant with rabbitMQPromise but kept for backward compatibility
 connectToRabbitMq();
 
 // Export functions for use in other files
