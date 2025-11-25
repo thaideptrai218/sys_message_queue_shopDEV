@@ -1,9 +1,10 @@
 version: "3.8"
 
 services:
-  mysql:
+  # MySQL Master
+  mysql-master:
     image: mysql:8.0
-    container_name: mysql-shopdev
+    container_name: mysql-master-shopdev
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root1234
@@ -13,11 +14,46 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - mysql_master_data:/var/lib/mysql
+      - ./config/mysql/master/my.cnf:/etc/my.cnf:ro
     networks:
       - shopdev-network
-    command: --default-authentication-plugin=mysql_native_password --sql_mode=TRADITIONAL
+    command:
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-proot1234",
+        ]
+      timeout: 20s
+      retries: 10
+
+  # MySQL Slave
+  mysql-slave:
+    image: mysql:8.0
+    container_name: mysql-slave-shopdev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: shopDEV
+      MYSQL_USER: tipsjs
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_slave_data:/var/lib/mysql
+      - ./config/mysql/slave/my.cnf:/etc/my.cnf:ro
+    depends_on:
+      - mysql-master
+    networks:
+      - shopdev-network
+    command:
     healthcheck:
       test:
         [
@@ -69,7 +105,8 @@ services:
       retries: 5
 
 volumes:
-  mysql_data:
+  mysql_master_data:
+  mysql_slave_data:
   redis_data:
   rabbitmq_data:
 
