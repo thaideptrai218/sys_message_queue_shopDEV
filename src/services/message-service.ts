@@ -88,21 +88,37 @@ export const consumerToQueueNormal = async () => {
             );
             return;
         }
-
         const { channel } = rabbitMQConnection;
         const notiQueue = "notificationQueueProcess";
+        // 1 TTL
+        // const timeExpired = 20000; // Increased to 20 seconds to ensure messages expire first
 
-        const timeExpired = 15000;
+        // setTimeout(() => {
+        //     channel.consume(notiQueue, (msg) => {
+        //         console.log(
+        //             `SEND notification successfully: `,
+        //             msg?.content.toString()
+        //         );
+        //         channel.ack(msg);
+        //     });
+        // }, timeExpired);
 
-        setTimeout(() => {
-            channel.consume(notiQueue, (msg) => {
+        channel.consume(notiQueue, (msg) => {
+            try {
+                const numberTest = Math.random();
+                console.log({ numberTest });
+                if (numberTest < 0.8) {
+                    throw new Error("Send notification failed: HOT FIX");
+                }
                 console.log(
                     `SEND notification successfully: `,
                     msg?.content.toString()
                 );
                 channel.ack(msg);
-            });
-        }, timeExpired);
+            } catch (error) {
+                channel.nack(msg, false, false);
+            }
+        });
     } catch (error) {
         console.error(error);
     }

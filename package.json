@@ -6,9 +6,9 @@
     "scripts": {
         "test": "jest",
         "test:watch": "jest --watch",
-        "docker:up": "docker-compose up -d",
-        "docker:down": "docker-compose down",
-        "docker:logs": "docker-compose logs -f",
+        "docker:up": "docker compose up -d",
+        "docker:down": "docker compose down",
+        "docker:logs": "docker compose logs -f",
         "start": "npm run docker:up && tsx server.ts",
         "dev": "tsx src/index.ts"
     },
