@@ -10,7 +10,7 @@ export const pool = mysql.createPool({
     user: process.env.MYSQL_USER || "tipsjs",
     password: process.env.MYSQL_PASSWORD || "123456",
     port: parseInt(process.env.MYSQL_PORT || "3306"),
-    database: process.env.MYSQL_DATABASE || "shopDEV",
+    database: process.env.MYSQL_DATABASE || "test",
 });
 
 // Test connection and log success
@@ -19,14 +19,6 @@ pool.getConnection((err, connection) => {
         console.error("❌ Failed to connect to MySQL:", err.message);
         return;
     }
-
-    console.log("✅ Connected to MySQL successfully!");
-    console.log(`📊 MySQL Connection Details:
-- Host: ${process.env.MYSQL_HOST || "localhost"}
-- Database: ${process.env.MYSQL_DATABASE || "shopDEV"}
-- User: ${process.env.MYSQL_USER || "tipsjs"}
-- Port: ${process.env.MYSQL_PORT || "3306"}`);
-
     connection.release();
 });
 
@@ -41,5 +33,42 @@ const testConnection = () => {
     });
 };
 
+const batchSize = 100000;
+const totalSize = 10_000_000;
+
+let currentId = 1;
+const insertBatch = () => {
+    console.time("TIMMER");
+    const value = [];
+
+    for (let i = 0; i < batchSize && currentId <= totalSize; i++) {
+        const name = `name-${currentId}`;
+        const age = currentId % 60;
+        const address = `address-${currentId}`;
+        value.push([currentId, name, age, address]);
+        currentId++;
+    }
+
+    if (!value.length) {
+        console.timeEnd("TIMMER");
+        pool.end((err) => {
+            if (err) throw err;
+            else console.log(`Connection pool closed`);
+        });
+        return;
+    }
+
+    const sql = `INSERT INTO test_table (id, name, age, address) VALUES ?`;
+
+    pool.query(sql, [value], (err, res) => {
+        if (err) {
+            console.error("❌ MySQL test query failed:", err.message);
+            return;
+        }
+        console.log(`Inserted`, res);
+        insertBatch();
+    });
+};
+
 // Run test connection
-testConnection();
+insertBatch();
