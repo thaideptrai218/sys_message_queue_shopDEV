@@ -15,11 +15,17 @@ services:
       - "3306:3306"
     volumes:
       - mysql_master_data:/var/lib/mysql
-      - ./config/mysql/master/my.cnf:/etc/my.cnf:ro
       - ./config/mysql/master/setup-replication.sql:/docker-entrypoint-initdb.d/setup_master.sql:ro
     networks:
       - shopdev-network
-    command: ["mysqld", "--mysql-native-password=ON"]
+    command: >
+      mysqld 
+      --server-id=1 
+      --log-bin=mysql-bin 
+      --binlog_format=ROW 
+      --gtid_mode=ON 
+      --enforce-gtid-consistency=ON 
+      --mysql-native-password=ON
     healthcheck:
       test:
         [
@@ -47,14 +53,21 @@ services:
       - "3307:3306"
     volumes:
       - mysql_slave_data:/var/lib/mysql
-      - ./config/mysql/slave/my.cnf:/etc/my.cnf:ro
       - ./config/mysql/slave/setup-slave-user.sql:/docker-entrypoint-initdb.d/setup-replica.sql:ro
 
     depends_on:
       - mysql-master
     networks:
       - shopdev-network
-    command: ["mysqld", "--mysql-native-password=ON"]
+    command: >
+      mysqld 
+      --server-id=2 
+      --log-bin=mysql-bin 
+      --binlog_format=ROW 
+      --gtid_mode=ON 
+      --enforce-gtid-consistency=ON 
+      --mysql-native-password=ON
+      --skip-slave-start=0
     healthcheck:
       test:
         [
